@@ -29,20 +29,29 @@ class UserController extends Controller
     {
         try {
             $year_of_birth = $request->dateOfBirth;
-            $age = $this->getAge($year_of_birth);
 
-            if ($this->validateAge($age)) {
-                $user = new User();
-                $user->name = $request->username;
-                $user->email = $request->email;
-                $user->dateOfBirth = $request->dateOfBirth;
-                $user->password = Hash::make($request->password);
-                $user->save();
-                $request->session()->put('loggedUser', $user->id);
-                return response()->json(['message' => 'Usuario creado'], 200);
+            list($year) = explode('-', $year_of_birth);
+            $currentYear = date('Y');
+            
+            if( $year > $currentYear ){
+                return response()->json(['message' => 'El año ingresado debe ser menor a '.$currentYear], 400);
             } else {
-                return response()->json(['message' => 'El calculo de la edad es "' . $age . '" esta se encuentra fuera de los rangos permitidos(18 - 124)'], 400);
+                $age = $this->getAge($year_of_birth);
+
+                if ($this->validateAge($age)) {
+                    $user = new User();
+                    $user->name = $request->username;
+                    $user->email = $request->email;
+                    $user->dateOfBirth = $request->dateOfBirth;
+                    $user->password = Hash::make($request->password);
+                    $user->save();
+                    $request->session()->put('loggedUser', $user->id);
+                    return response()->json(['message' => 'Usuario creado'], 200);
+                } else {
+                    return response()->json(['message' => 'El calculo de la edad es "' . $age . '" esta se encuentra fuera de los rangos permitidos(18 - 124)'], 400);
+                }
             }
+
         } catch (\Throwable $th) {
             // throw $th;
             return response()->json(['message' => 'Ha ocurrido un error inesperado'], 500);
@@ -90,6 +99,7 @@ class UserController extends Controller
         $start = new DateTime($year_of_birth);
         $end = new DateTime();
         $end->setTimezone(new DateTimeZone('America/Santiago'));
+
         $age = $start->diff($end);
         return $age->y;
     }
